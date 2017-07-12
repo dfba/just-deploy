@@ -1,4 +1,10 @@
 {
+	"autoload": {
+		"psr-4": {
+			"GitSshDeploy\\": "src/"
+		}
+	},
 	"require": {
+		"phpseclib/phpseclib": "^2.0"
 	}
 }
