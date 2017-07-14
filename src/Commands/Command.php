@@ -25,6 +25,11 @@ abstract class Command {
 		}
 	}
 
+	protected function argument($name, $defaultValue=null)
+	{
+		return isset($this->arguments[$name]) ? $this->arguments[$name] : $defaultValue;
+	}
+
 	protected function help()
 	{
 		return "No help available.";

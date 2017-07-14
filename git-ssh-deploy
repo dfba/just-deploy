@@ -9,7 +9,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 	if ($errno & error_reporting()) {
 		throw new ErrorException($errstr, $errno, 0, $errfile, $errline);
 	}
-	
+
 });
 
 require __DIR__ . '/vendor/autoload.php';
@@ -17,20 +17,3 @@ require __DIR__ . '/vendor/autoload.php';
 (new GitSshDeploy\Console())->execute(
 	array_slice($argv, 1)
 );
-
-
-
-// use phpseclib\Crypt\RSA;
-// use phpseclib\Net\SSH2;
-
-// $key = new RSA();
-// $key->loadKey(file_get_contents('private-key.txt'));
-
-// // Domain can be an IP too
-// $ssh = new SSH2('www.domain.tld');
-// if (!$ssh->login('username', $key)) {
-//     exit('Login Failed');
-// }
-
-// echo $ssh->exec('pwd');
-// echo $ssh->exec('ls -la');
