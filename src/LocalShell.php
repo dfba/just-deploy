@@ -2,8 +2,6 @@
 
 namespace GitSshDeploy;
 
-use Exception;
-
 class LocalShell {
 
 	protected $workingDirectory = null;
@@ -24,13 +22,17 @@ class LocalShell {
 	{
 		$cwd = realpath($this->workingDirectory ?: '.');
 
+		if (!$cwd) {
+			throw new ShellException("Invalid local path: {$this->workingDirectory}");
+		}
+
 		$proc = proc_open($command, [
 			1 => ['pipe', 'w'],
 			2 => ['pipe', 'w'],
 		], $pipes, $cwd);
 
 		if (!$proc) {
-			throw new Exception("Command `$command` exited with error message: \"". error_get_last()['message'] ."\"");
+			throw new ShellException("Command `$command` exited with error message: \"". error_get_last()['message'] ."\"");
 		}
 
 		$stdout = stream_get_contents($pipes[1]);
@@ -42,11 +44,11 @@ class LocalShell {
 		$exitStatus = proc_close($proc);
 
 		if (strlen($stderr)) {
-			throw new Exception("Command `$command` exited with error message: \"". trim($stderr) ."\" (status code: $exitStatus)");
+			throw new ShellException("Command `$command` exited with error message: \"". trim($stderr) ."\" (status code: $exitStatus)");
 		}
 
 		if ($exitStatus) {
-			throw new Exception("Command `$command` exited with status code: $exitStatus");
+			throw new ShellException("Command `$command` exited with status code: $exitStatus");
 		}
 
 		return $stdout;

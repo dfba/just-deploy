@@ -5,7 +5,6 @@ namespace GitSshDeploy;
 use phpseclib\Crypt\RSA;
 use phpseclib\Net\SSH2;
 
-use InvalidArgumentException;
 use Exception;
 
 class RemoteShell {
@@ -58,11 +57,11 @@ class RemoteShell {
 		$exitStatus = $this->ssh->getExitStatus();
 
 		if (strlen($stdError)) {
-			throw new Exception("SSH Command `$command` exited with error message: \"". trim($stdError) ."\" (status code: $exitStatus)");
+			throw new ShellException("SSH Command `$command` exited with error message: \"". trim($stdError) ."\" (status code: $exitStatus)");
 		}
 
 		if ($exitStatus) {
-			throw new Exception("SSH command exited with status: $exitStatus");
+			throw new ShellException("SSH command exited with status: $exitStatus");
 		}
 
 		return $result;
