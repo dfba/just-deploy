@@ -1,6 +1,6 @@
 <?php
 
-namespace GitSshDeploy;
+namespace JustDeploy;
 
 use Exception;
 

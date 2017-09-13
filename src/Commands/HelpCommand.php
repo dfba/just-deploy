@@ -1,6 +1,6 @@
 <?php
 
-namespace GitSshDeploy\Commands;
+namespace JustDeploy\Commands;
 
 class HelpCommand extends Command {
 

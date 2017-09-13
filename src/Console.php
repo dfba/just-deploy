@@ -1,6 +1,6 @@
 <?php
 
-namespace GitSshDeploy;
+namespace JustDeploy;
 
 use InvalidArgumentException;
 
@@ -34,7 +34,7 @@ class Console {
 	{
 		$commandClass = $this->camelCase($commandName);
 
-		return "GitSshDeploy\\Commands\\{$commandClass}Command";
+		return "JustDeploy\\Commands\\{$commandClass}Command";
 	}
 
 	protected function camelCase($string)
