@@ -14,6 +14,16 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 require __DIR__ . '/vendor/autoload.php';
 
+
+
+// `instanceof` does not trigger autoloading, because technically an object 
+// can't be an instance of a class/interface that hasn't been loaded yet. 
+// Except when `class_alias` is used. Which is the case for the following file.
+// So we'll manually trigger autoloading before any other code is run.
+interface_exists(JustDeploy\FilesystemInterface::class);
+
+
+
 (new JustDeploy\Console())->execute(
 	array_slice($argv, 1)
 );
