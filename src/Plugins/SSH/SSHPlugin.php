@@ -2,6 +2,7 @@
 
 namespace JustDeploy\Plugins\SSH;
 
+use JustDeploy\Flysystem\ShellPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
 use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
@@ -10,10 +11,13 @@ class SSHPlugin {
 
 	public function create($options)
 	{
-		return (object) [
-			'shell' => $this->createShell($options),
-			'filesystem' => $this->createFilesystem($options),
-		];
+		$filesystem = $this->createFilesystem($options);
+
+		$filesystem->addPlugin(new ShellPlugin(
+			$this->createShell($options)
+		));
+
+		return $filesystem;
 	}
 
 	protected function createShell($options)

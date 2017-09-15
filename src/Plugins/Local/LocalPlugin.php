@@ -3,6 +3,7 @@
 namespace JustDeploy\Plugins\Local;
 
 use Exception;
+use JustDeploy\Flysystem\ShellPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Local as LocalAdapter;
 
@@ -10,10 +11,13 @@ class LocalPlugin {
 
 	public function create($options)
 	{
-		return (object) [
-			'shell' => $this->createShell($options),
-			'filesystem' => $this->createFilesystem($options),
-		];
+		$filesystem = $this->createFilesystem($options);
+
+		$filesystem->addPlugin(new ShellPlugin(
+			$this->createShell($options)
+		));
+
+		return $filesystem;
 	}
 
 	protected function createShell($options)
