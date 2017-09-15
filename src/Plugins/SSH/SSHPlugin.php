@@ -3,6 +3,7 @@
 namespace JustDeploy\Plugins\SSH;
 
 use JustDeploy\Flysystem\ShellPlugin;
+use JustDeploy\Flysystem\FilterContentsPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
 use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
@@ -12,7 +13,7 @@ class SSHPlugin {
 	public function create($options)
 	{
 		$filesystem = $this->createFilesystem($options);
-
+		$filesystem->addPlugin(new FilterContentsPlugin());
 		$filesystem->addPlugin(new ShellPlugin(
 			$this->createShell($options)
 		));
