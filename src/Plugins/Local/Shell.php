@@ -1,38 +1,50 @@
 <?php
 
-namespace JustDeploy;
+namespace JustDeploy\Plugins\Local;
 
-class LocalShell {
+use JustDeploy\ShellException;
 
-	protected $workingDirectory = null;
+class Shell {
 
-	public function setWorkingDirectory($workingDirectory)
+	protected $cwd;
+
+	public function __construct(array $options)
 	{
-		$this->workingDirectory = $workingDirectory;
+		$this->cwd = realpath($options['cwd']);
+	}
+
+	public function chdir($cwd)
+	{
+		$this->cwd = realpath($cwd);
 
 		return $this;
 	}
 
-	public function escapeArgument($argument)
+	public function getcwd()
+	{
+		return $this->cwd;
+	}
+
+	public function escape($argument)
 	{
 		return escapeshellarg($argument);
 	}
 
-	public function execute($command)
+	public function exec($command)
 	{
-		$cwd = realpath($this->workingDirectory ?: '.');
-
-		if (!$cwd) {
-			throw new ShellException("Invalid local path: {$this->workingDirectory}");
+		if (!$this->cwd) {
+			throw new ShellException("Invalid working directory: {$this->cwd}");
 		}
 
-		$proc = proc_open($command, [
+		$process = proc_open($command, [
 			1 => ['pipe', 'w'],
 			2 => ['pipe', 'w'],
-		], $pipes, $cwd);
+		], $pipes, $this->cwd);
 
-		if (!$proc) {
-			throw new ShellException("Command `$command` exited with error message: \"". error_get_last()['message'] ."\"");
+		if (!$process) {
+			$lastError = error_get_last();
+
+			throw new ShellException("Command `$command` exited with error message: \"". $lastError['message'] ."\"");
 		}
 
 		$stdout = stream_get_contents($pipes[1]);
@@ -41,7 +53,7 @@ class LocalShell {
 		$stderr = stream_get_contents($pipes[2]);
 		fclose($pipes[2]);
 
-		$exitStatus = proc_close($proc);
+		$exitStatus = proc_close($process);
 
 		if (strlen($stderr)) {
 			throw new ShellException("Command `$command` exited with error message: \"". trim($stderr) ."\" (status code: $exitStatus)");
