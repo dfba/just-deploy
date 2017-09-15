@@ -1,60 +1,85 @@
 <?php
 
-namespace JustDeploy;
-
-use phpseclib\Crypt\RSA;
-use phpseclib\Net\SSH2;
+namespace JustDeploy\Plugins\SSH;
 
 use Exception;
+use phpseclib\Net\SSH2;
 
-class RemoteShell {
+
+class Shell {
 
 	protected $ssh = null;
-	protected $workingDirectory = null;
 
-	public function connect($host, $port, $user, $password)
+	protected $host;
+	protected $port;
+	protected $username;
+	protected $password;
+	protected $cwd;
+
+	public function __construct(array $options)
 	{
-		$this->ssh = new SSH2($host, $port);
-
-		try {
-
-			if (!$this->ssh->login($user, $password)) {
-				throw new Exception("Failed to log in $user@$host:$port");
-			}
-
-			$this->ssh->enableQuietMode();
-
-		} catch(Exception $e) {
-			$this->ssh = null;
-			throw $e;
-		}
+		$this->host = $options['host'];
+		$this->port = @$options['port'] ?: 22;
+		$this->username = @$options['username'];
+		$this->password = @$options['password'];
+		$this->cwd = @$options['cwd'] ?: '/';
 	}
 
-	public function setWorkingDirectory($workingDirectory)
+	protected function getSSHConnection()
 	{
-		$this->workingDirectory = $workingDirectory;
+		if (!$this->ssh) {
+
+			$this->ssh = new SSH2($this->host, $this->port);
+
+			try {
+
+				if (!$this->ssh->login($this->username, $this->password)) {
+					throw new Exception("Failed to log in {$this->username}@{$this->host}:{$this->port}");
+				}
+
+				$this->ssh->enableQuietMode();
+
+			} catch(Exception $e) {
+				$this->ssh = null;
+				throw $e;
+			}
+		}
+
+		return $this->ssh;
+	}
+
+	public function chdir($cwd)
+	{
+		$this->cwd = $cwd;
 
 		return $this;
 	}
 
-	public function escapeArgument($argument)
+	public function getcwd()
+	{
+		return $this->cwd;
+	}
+
+	public function escape($argument)
 	{
 		return "'". str_replace("'", "\\'", $argument) ."'";
 	}
 
-	public function execute($command)
+	public function exec($command)
 	{
+		$ssh = $this->getSSHConnection();
+
 		$exec = '';
-		if ($this->workingDirectory !== null) {
-			$exec = 'cd '. $this->escapeArgument($this->workingDirectory) ."\n";
+		if ($this->cwd !== null) {
+			$exec = 'cd '. $this->escape($this->cwd) ."\n";
 		}
 
 		$exec .= $command;
 
-		$result = $this->ssh->exec($exec);
+		$result = $ssh->exec($exec);
 
-		$stdError = $this->ssh->getStdError();
-		$exitStatus = $this->ssh->getExitStatus();
+		$stdError = $ssh->getStdError();
+		$exitStatus = $ssh->getExitStatus();
 
 		if (strlen($stdError)) {
 			throw new ShellException("SSH Command `$command` exited with error message: \"". trim($stdError) ."\" (status code: $exitStatus)");
