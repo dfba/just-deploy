@@ -4,6 +4,7 @@ namespace JustDeploy\Plugins\SSH;
 
 use Exception;
 use phpseclib\Net\SSH2;
+use JustDeploy\ShellException;
 
 
 class Shell {
