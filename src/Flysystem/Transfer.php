@@ -110,120 +110,91 @@ class Transfer {
 		return $this;
 	}
 
-	public function start()
+	protected function getFromFilesystem()
+	{
+		if (!$this->fromFilesystem instanceof FilesystemInterface) {
+			throw new InvalidArgumentException("Specify a 'from' filesystem.");
+		}
+
+		return $this->fromFilesystem;
+	}
+
+	protected function getToFilesystem()
 	{
 		if (!$toFilesystem = $this->toFilesystem) {
 			$toFilesystem = $this->fromFilesystem;
-		}
-
-		if (!$this->fromFilesystem instanceof FilesystemInterface) {
-			throw new InvalidArgumentException("Specify a 'from' filesystem.");
 		}
 
 		if (!$toFilesystem instanceof FilesystemInterface) {
 			throw new InvalidArgumentException("Specify a 'to' filesystem.");
 		}
 
+		return $toFilesystem;
+	}
 
-		$file = [
-			'type' => 'dir',
-			'path' => '',
-		];
+	public function start()
+	{
+		$files = $this->getFilesToTransfer();
+		$bytesTotal = $this->getFileSizesSum($files);
+		$filesTotal = count($files);
 
-		if ($this->fromPath !== '') {
-			$file = $this->fromFilesystem->getMetadata($this->fromPath);
+		$bytesTransferred = 0;
+		$filesTransferred = 0;
+
+		$this->callProgressCallback($filesTransferred, $filesTotal, $bytesTransferred, $bytesTotal);
+
+		foreach ($files as $file) {
+
+			$toFilePath = $this->rebaseFilePath($file['path'], $this->fromPath, $this->toPath);
+
+			$this->callBeforeTransferCallback($file, $toFilePath);
+			$this->transferFile($file, $toFilePath);
+			$this->callAfterTransferCallback($file, $toFilePath);
+
+			$filesTransferred += 1;
+			$bytesTransferred += $this->getFileSize($file, 0);
+
+			$this->callProgressCallback($filesTransferred, $filesTotal, $bytesTransferred, $bytesTotal);
+		}
+	}
+
+	protected function rebaseFilePath($path, $base, $newBase)
+	{
+		$path = ltrim($path, '/');
+		$base = ltrim($base, '/');
+		$newBase = rtrim($newBase, '/');
+
+		$baseLength = strlen($base);
+		$relativePath = ltrim(substr($path, $baseLength), '/');
+
+		$cutBase = substr($path, 0, $baseLength);
+		if ($cutBase !== $base) {
+			throw new InvalidArgumentException("Path '$path' does not contain base path '$base'.");
 		}
 
+		return ltrim($newBase .'/'. $relativePath, '/');
+	}
 
-		if ($file['type'] === 'file') {
-
-			$fileSize = @$file['size'] ?: 0;
-
-			$this->callProgressCallback(0, 1, 0, $fileSize);
-			$this->callBeforeTransferCallback($file, $this->toPath);
-
-			$this->copyFile(
-				$this->fromFilesystem,
-				$this->fromPath,
-				$toFilesystem,
-				$this->toPath,
-				$this->overwriteFiles
-			);
-
-			$this->callAfterTransferCallback($file, $this->toPath);
-			$this->callProgressCallback(1, 1, $fileSize, $fileSize);
-
-		} else if ($file['type'] === 'dir') {
-
-			$files = $this->fromFilesystem->filterContents(
-				$this->filterPatterns,
-				$this->fromPath,
-				$this->recursive,
-				$this->filterInverse
-			);
-
-			$totalFiles = count($files) + 1;
-			$totalFileSize = $this->getFileSizesSum($files);
-
-
-
-			$this->callProgressCallback(0, $totalFiles, 0, $totalFileSize);
-			$this->callBeforeTransferCallback($file, $this->toPath);
+	protected function transferFile($file, $toPath)
+	{
+		if ($file['type'] === 'dir') {
 
 			$this->createDirectory(
-				$toFilesystem,
-				$this->toPath,
+				$this->getToFilesystem(),
+				$toPath,
 				$this->overwriteEmptyDirectories,
 				$this->overwriteNonEmptyDirectories
 			);
 
-			$this->callAfterTransferCallback($file, $this->toPath);
-			$this->callProgressCallback(1, $totalFiles, 0, $totalFileSize);
+		} else if ($file['type'] === 'file') {
 
-
-			$filesTransferred = 1;
-			$bytesTransferred = 0;
-			$prefixLength = strlen($this->fromPath);
-
-			foreach ($files as $file) {
-
-				$fileSize = @$file['size'] ?: 0;
-				$fromFilePath = $file['path'];
-				$pathRelativeToTransfer = substr($fromFilePath, $prefixLength);
-				$toFilePath = $this->toPath . $pathRelativeToTransfer;
-
-
-				$this->callBeforeTransferCallback($file, $toFilePath);
-
-				if ($file['type'] === 'dir') {
-
-					$this->createDirectory(
-						$toFilesystem,
-						$toFilePath,
-						$this->overwriteEmptyDirectories,
-						$this->overwriteNonEmptyDirectories
-					);
-
-				} else if ($file['type'] === 'file') {
-
-					$this->copyFile(
-						$this->fromFilesystem,
-						$fromFilePath,
-						$toFilesystem,
-						$toFilePath,
-						$this->overwriteFiles
-					);
-
-				} else {
-					throw new Exception("Can't transfer file type '{$file['type']}'. Path: $fromFilePath");
-				}
-
-				$this->callAfterTransferCallback($file, $toFilePath);
-
-				$filesTransferred += 1;
-				$bytesTransferred += $fileSize;
-				$this->callProgressCallback($filesTransferred, $totalFiles, $bytesTransferred, $totalFileSize);
-			}
+			$this->copyFile(
+				$this->getFromFilesystem(),
+				$file['path'],
+				$this->getToFilesystem(),
+				$toPath,
+				$this->overwriteFiles
+			);
 
 		} else {
 			throw new Exception("Can't transfer file type '{$file['type']}'. Path: {$file['path']}");
@@ -251,24 +222,64 @@ class Transfer {
 		}
 	}
 
+	protected function getRootFile()
+	{
+		if ($this->fromPath === '') {
+			return [
+				'type' => 'dir',
+				'path' => '',
+			];
+		} else {
+			return $this->fromFilesystem->getMetadata($this->fromPath);
+		}
+	}
+
+	protected function getFilesToTransfer()
+	{
+		$rootFile = $this->getRootFile();
+
+		if ($rootFile['type'] === 'dir') {
+
+			$directoryContents = $this->fromFilesystem->filterContents(
+				$this->filterPatterns,
+				$this->fromPath,
+				$this->recursive,
+				$this->filterInverse
+			);
+
+			return array_merge([$rootFile], $directoryContents);
+
+		} else {
+			return [$rootFile];
+		}
+	}
+
 	protected function getFileSizesSum($files)
 	{
 		$sum = 0;
 
 		foreach ($files as $file) {
-			$size = @$file['size'];
-
-			if (!is_null($size)) {
-				$sum += $size;
-			}
+			$sum += $this->getFileSize($file, 0);
 		}
 
 		return $sum;
 	}
 
+	protected function getFileSize($file, $default=null)
+	{
+		if (isset($file['size'])) {
+			return $file['size'];
+		} else {
+			return $default;
+		}
+	}
+
 	protected function createDirectory($filesystem, $path, $overwriteEmptyDirectories, $overwriteNonEmptyDirectories)
 	{
-		if (!$overwriteNonEmptyDirectories && $filesystem->has($path)) {
+		$isRoot = ($path === '');
+		$exists = $isRoot || $filesystem->has($path);
+
+		if (!$overwriteNonEmptyDirectories && $exists) {
 
 			if ($overwriteEmptyDirectories) {
 
@@ -284,7 +295,9 @@ class Transfer {
 			}
 		}
 
-		$filesystem->createDir($path);
+		if (!$isRoot) {
+			$filesystem->createDir($path);
+		}
 	}
 
 	protected function copyFile($fromFilesystem, $fromPath, $toFilesystem, $toPath, $overwrite)
