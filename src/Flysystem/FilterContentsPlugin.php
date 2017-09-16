@@ -12,13 +12,15 @@ class FilterContentsPlugin extends AbstractPlugin {
 	}
 
 	public function handle(
-		$filePatterns = [],
+		$filePatterns = null,
 		$path = '',
 		$recursive = false,
 		$inverse = false
 	) {
 
-		$filePatterns = (array) $filePatterns;
+		if (is_null($filePatterns)) {
+			return $this->filesystem->listContents($path, $recursive);
+		}
 
 		if (!count($filePatterns)) {
 			if ($inverse) {
@@ -28,7 +30,7 @@ class FilterContentsPlugin extends AbstractPlugin {
 			}
 		}
 
-		$pregPatterns = $this->fileToPregPatterns($filePatterns);
+		$pregPatterns = $this->fileToPregPatterns((array) $filePatterns);
 
 		return $this->_listContentsFiltered(
 			$pregPatterns,
