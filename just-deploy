@@ -24,6 +24,14 @@ interface_exists(JustDeploy\FilesystemInterface::class);
 
 
 
-(new JustDeploy\Console())->execute(
-	array_slice($argv, 1)
+function require_sandboxed($___path, $___scope=[])
+{
+	extract($___scope);
+
+	return require($___path);
+}
+
+(new JustDeploy\Application())->execute(
+	array_slice($argv, 1),
+	$_ENV
 );
