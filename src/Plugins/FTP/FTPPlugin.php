@@ -7,7 +7,7 @@ use League\Flysystem\Adapter\Ftp as FtpAdapter;
 
 class FTPPlugin {
 
-	public function create($options)
+	public function make($options)
 	{
 		return (object) [
 			'filesystem' => $this->createFilesystem($options),

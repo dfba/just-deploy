@@ -11,7 +11,7 @@ use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
 
 class SSHPlugin {
 
-	public function create($options)
+	public function make($options)
 	{
 		$filesystem = $this->createFilesystem($options);
 		$filesystem->addPlugin(new FilterContentsPlugin());

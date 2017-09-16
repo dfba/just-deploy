@@ -11,7 +11,7 @@ use League\Flysystem\Adapter\Local as LocalAdapter;
 
 class LocalPlugin {
 
-	public function create($options)
+	public function make($options)
 	{
 		$filesystem = $this->createFilesystem($options);
 		$filesystem->addPlugin(new FilterContentsPlugin());
