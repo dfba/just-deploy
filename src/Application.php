@@ -20,6 +20,8 @@ class Application {
 			throw new Exception("Deploy file does not exist: $deployFile");
 		}
 
+		// Relative paths used in the deploy file should be relative to the deploy file's parent directory:
+		chdir(dirname($deployFile));
 		require_sandboxed($deployFile);
 
 		if (!class_exists('Deployment')) {
