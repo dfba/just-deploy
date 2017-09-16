@@ -21,6 +21,8 @@ class Transfer {
 	protected $overwriteNonEmptyDirectories = false;
 	protected $replaceDirectories = false;
 	protected $onProgress = null;
+	protected $onBeforeListing = null;
+	protected $onAfterListing = null;
 	protected $onBeforeTransfer = null;
 	protected $onAfterTransfer = null;
 
@@ -96,6 +98,20 @@ class Transfer {
 		return $this;
 	}
 
+	public function onBeforeListing(callable $onBeforeListing = null)
+	{
+		$this->onBeforeListing = $onBeforeListing;
+		
+		return $this;
+	}
+
+	public function onAfterListing(callable $onAfterListing = null)
+	{
+		$this->onAfterListing = $onAfterListing;
+		
+		return $this;
+	}
+
 	public function onBeforeTransfer(callable $onBeforeTransfer = null)
 	{
 		$this->onBeforeTransfer = $onBeforeTransfer;
@@ -134,9 +150,13 @@ class Transfer {
 
 	public function start()
 	{
+		$this->callBeforeListingCallback();
+
 		$files = $this->getFilesToTransfer();
 		$bytesTotal = $this->getFileSizesSum($files);
 		$filesTotal = count($files);
+		
+		$this->callAfterListingCallback($files, $filesTotal, $bytesTotal);
 
 		$bytesTransferred = 0;
 		$filesTransferred = 0;
@@ -198,6 +218,20 @@ class Transfer {
 
 		} else {
 			throw new Exception("Can't transfer file type '{$file['type']}'. Path: {$file['path']}");
+		}
+	}
+
+	protected function callBeforeListingCallback()
+	{
+		if ($this->onBeforeListing) {
+			call_user_func($this->onBeforeListing);
+		}
+	}
+
+	protected function callAfterListingCallback($files, $filesTotal, $bytesTotal)
+	{
+		if ($this->onAfterListing) {
+			call_user_func($this->onAfterListing, $files, $filesTotal, $bytesTotal);
 		}
 	}
 
