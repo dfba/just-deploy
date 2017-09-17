@@ -2,7 +2,7 @@
 
 namespace JustDeploy\Plugins\Git;
 
-class GitPlugin {
+class Plugin {
 
 	public function make($options)
 	{

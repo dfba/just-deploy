@@ -4,10 +4,10 @@ namespace JustDeploy;
 
 use ReflectionClass;
 
-use JustDeploy\Plugins\Local\LocalPlugin;
-use JustDeploy\Plugins\FTP\FTPPlugin;
-use JustDeploy\Plugins\SSH\SSHPlugin;
-use JustDeploy\Plugins\Git\GitPlugin;
+use JustDeploy\Plugins\Local\Plugin as LocalPlugin;
+use JustDeploy\Plugins\FTP\Plugin as FTPPlugin;
+use JustDeploy\Plugins\SSH\Plugin as SSHPlugin;
+use JustDeploy\Plugins\Git\Plugin as GitPlugin;
 
 class Deployment {
 

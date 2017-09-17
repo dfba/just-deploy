@@ -9,7 +9,7 @@ use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
 use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
 
-class SSHPlugin {
+class Plugin {
 
 	public function make($options)
 	{

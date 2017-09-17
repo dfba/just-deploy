@@ -9,7 +9,7 @@ use JustDeploy\Flysystem\NewTransferPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Local as LocalAdapter;
 
-class LocalPlugin {
+class Plugin {
 
 	public function make($options)
 	{
