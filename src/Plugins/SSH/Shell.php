@@ -5,7 +5,7 @@ namespace JustDeploy\Plugins\SSH;
 use Exception;
 use phpseclib\Net\SSH2;
 use JustDeploy\ShellException;
-
+use League\Flysystem\Util;
 
 class Shell {
 
@@ -59,6 +59,11 @@ class Shell {
 	public function getcwd()
 	{
 		return $this->cwd;
+	}
+
+	public function resolvePath($path)
+	{
+		return rtrim(rtrim($this->cwd, '/') .'/'. Util::normalizePath($path), '/');
 	}
 
 	public function escape($argument)
