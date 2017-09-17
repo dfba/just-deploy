@@ -55,15 +55,14 @@ class Shell {
 
 		$exitStatus = proc_close($process);
 
-		if (strlen($stderr)) {
-			throw new ShellException("Command `$command` exited with error message: \"". trim($stderr) ."\" (status code: $exitStatus)");
-		}
-
 		if ($exitStatus) {
-			throw new ShellException("Command `$command` exited with status code: $exitStatus");
+			throw new ShellException("Command `$command` exited with status code: $exitStatus. Message: \"". trim($stderr) ."\"", $exitStatus);
 		}
 
-		return $stdout;
+		return [
+			'stdout' => $stdout,
+			'stderr' => $stderr,
+		];
 	}
 
 }

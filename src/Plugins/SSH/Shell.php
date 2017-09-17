@@ -77,20 +77,19 @@ class Shell {
 
 		$exec .= $command;
 
-		$result = $ssh->exec($exec);
+		$stdout = $ssh->exec($exec);
 
-		$stdError = $ssh->getStdError();
+		$stderr = $ssh->getStdError();
 		$exitStatus = $ssh->getExitStatus();
 
-		if (strlen($stdError)) {
-			throw new ShellException("SSH Command `$command` exited with error message: \"". trim($stdError) ."\" (status code: $exitStatus)");
-		}
-
 		if ($exitStatus) {
-			throw new ShellException("SSH command exited with status: $exitStatus");
+			throw new ShellException("SSH Command `$command` exited with status code: $exitStatus. Message: \"". trim($stderr) ."\"", $exitStatus);
 		}
 
-		return $result;
+		return [
+			'stdout' => $stdout,
+			'stderr' => $stderr,
+		];
 	}
 
 }
