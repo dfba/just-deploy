@@ -7,6 +7,7 @@ use ReflectionClass;
 use JustDeploy\Plugins\Local\LocalPlugin;
 use JustDeploy\Plugins\FTP\FTPPlugin;
 use JustDeploy\Plugins\SSH\SSHPlugin;
+use JustDeploy\Plugins\Git\GitPlugin;
 
 class Deployment {
 
@@ -15,6 +16,7 @@ class Deployment {
 		'ftp' => FTPPlugin::class,
 		'ssh' => SSHPlugin::class,
 		'sftp' => SSHPlugin::class, // Alias
+		'git' => GitPlugin::class,
 	];
 
 	public $plugins = [];
