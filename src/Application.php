@@ -14,7 +14,9 @@ class Application {
 		$task = $arguments['task'] ?: 'default';
 		$taskName = lcfirst($this->camelCase($task));
 
-		$deployFile = realpath(@$arguments['--deploy-file'] ?: getcwd() .'/just-deploy.php');
+		$defaultDeployFile = getcwd() .'/just-deploy.php';
+		$suppliedDeployFile = @$arguments['arguments']['--deploy-file'];
+		$deployFile = realpath($suppliedDeployFile ?: $defaultDeployFile);
 
 		if (!file_exists($deployFile)) {
 			throw new Exception("Deploy file does not exist: $deployFile");
