@@ -21,6 +21,8 @@ class AtomicDeployment {
 	protected $generateName;
 	protected $compareName;
 
+	protected $logProgress;
+
 	public function __construct($options)
 	{
 		$this->filesystem = $options['filesystem'];
@@ -35,6 +37,8 @@ class AtomicDeployment {
 		
 		$this->generateName = @$options['generateName'] ?: [$this, 'generateNameDefault'];
 		$this->compareName = @$options['compareName'] ?: [$this, 'compareNameDefault'];
+
+		$this->logProgress = isset($options['logProgress']) ? $options['logProgress'] : false;
 
 
 		if (!$this->filesystem instanceof FilesystemInterface) {
@@ -62,6 +66,13 @@ class AtomicDeployment {
 		}
 	}
 
+	protected function log($message)
+	{
+		if ($this->logProgress) {
+			echo $message ."\n";
+		}
+	}
+
 	protected function generateNameDefault()
 	{
 		return date('Y.m.d-H.i.s') .'-'. uniqid('', true);
@@ -77,12 +88,18 @@ class AtomicDeployment {
 		$deploymentName = call_user_func($this->generateName);
 		$deploymentPath = Util::normalizePath($this->directory .'/'. $deploymentName);
 
+		$this->log("Starting atomic deployment: $deploymentName");
+
 		$this->filesystem->createDir($deploymentPath);
 
 		call_user_func($prepare, $deploymentPath);
 
+		$this->log("Publishing deployment...");
+
 		$this->filesystem->write($deploymentPath .'/'. $this->successFile, '');
 		$this->atomicSymlink($this->currentLink, $deploymentPath);
+
+		$this->log("Deployment published!");
 
 		if ($finalize) {
 			call_user_func($finalize, $deploymentPath);
@@ -102,6 +119,8 @@ class AtomicDeployment {
 
 	protected function cleanup($current)
 	{
+		$this->log("Locating old deployments...");
+
 		$files = $this->filesystem->listContents($this->directory);
 
 		$successfulDeployments = [];
@@ -122,16 +141,38 @@ class AtomicDeployment {
 			}
 		}
 
+		$this->log(
+			"Found ". count($successfulDeployments) .
+			" old deployments and ". count($failedDeployments) .
+			" failed deployments."
+		);
+
 		usort($successfulDeployments, $this->compareName);
 		usort($failedDeployments, $this->compareName);
 
 		if ($this->keepFailed !== true) {
+
+			$keepFailed = (int) $this->keepFailed;
+
+			$this->log(
+				"Keeping $keepFailed recently failed deployment(s) and removing ". 
+				(count($failedDeployments) - $keepFailed) ."."
+			);
+
 			$this->removeDeployments(
-				array_slice($failedDeployments, (int) $this->keepFailed)
+				array_slice($failedDeployments, $keepFailed)
 			);
 		}
 
 		if ($this->keepSuccessful !== true) {
+
+			$keepSuccessful = (int) $this->keepSuccessful;
+
+			$this->log(
+				"Keeping $keepSuccessful recently succeeded deployment(s) and removing ". 
+				(count($successfulDeployments) - $keepSuccessful) ."."
+			);
+
 			$this->removeDeployments(
 				array_slice($successfulDeployments, (int) $this->keepSuccessful)
 			);
@@ -141,8 +182,16 @@ class AtomicDeployment {
 	protected function removeDeployments($deployments)
 	{
 		foreach ($deployments as $file) {
-			$this->filesystem->deleteDir($file['path']);
+			$this->log("Removing deployment: ". $file['basename']);
+			$this->removeDirectory($file['path']);
 		}
+	}
+
+	protected function removeDirectory($path)
+	{
+		$pathArgument = $this->shell->escape($this->shell->resolvePath($path));
+		// Using `rm -r` is *much* faster than its equivalent: `$this->filesystem->deleteDir($file['path']);`
+		$this->shell->exec("rm -r $pathArgument");
 	}
 
 }
