@@ -9,6 +9,7 @@ use JustDeploy\Plugins\FTP\Plugin as FTPPlugin;
 use JustDeploy\Plugins\SSH\Plugin as SSHPlugin;
 use JustDeploy\Plugins\Git\Plugin as GitPlugin;
 use JustDeploy\Plugins\Atomic\Plugin as AtomicPlugin;
+use JustDeploy\Plugins\Transfer\Plugin as TransferPlugin;
 
 class Deployment {
 
@@ -19,6 +20,7 @@ class Deployment {
 		'sftp' => SSHPlugin::class, // Alias
 		'git' => GitPlugin::class,
 		'atomic' => AtomicPlugin::class,
+		'transfer' => TransferPlugin::class,
 	];
 
 	public $plugins = [];

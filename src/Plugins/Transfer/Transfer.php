@@ -1,6 +1,6 @@
 <?php
 
-namespace JustDeploy\Flysystem;
+namespace JustDeploy\Plugins\Transfer;
 
 use Exception;
 use InvalidArgumentException;
@@ -9,121 +9,37 @@ use League\Flysystem\Util;
 
 class Transfer {
 
-	protected $fromFilesystem = null;
-	protected $fromPath = '';
-	protected $toFilesystem = null;
-	protected $toPath = '';
-	protected $filterPatterns = null;
-	protected $filterInverse = false;
-	protected $recursive = false;
-	protected $overwriteFiles = false;
-	protected $overwriteEmptyDirectories = false;
-	protected $overwriteNonEmptyDirectories = false;
-	protected $replaceDirectories = false;
-	protected $onProgress = null;
-	protected $onBeforeListing = null;
-	protected $onAfterListing = null;
-	protected $onBeforeTransfer = null;
-	protected $onAfterTransfer = null;
+	protected $fromFilesystem;
+	protected $fromPath;
+	protected $toFilesystem;
+	protected $toPath;
+	protected $filterPatterns;
+	protected $filterInverse;
+	protected $recursive;
+	protected $overwriteFiles;
+	protected $overwriteEmptyDirectories;
+	protected $overwriteNonEmptyDirectories;
+	protected $replaceDirectories;
+	protected $onProgress;
+	protected $onBeforeListing;
+	protected $onAfterListing;
+	protected $onBeforeTransfer;
+	protected $onAfterTransfer;
 
-	public function from($filesystem, $path = '')
+
+	public function __construct($options)
 	{
-		if (is_string($filesystem)) {
-			return $this->from($this->fromFilesystem, $filesystem);
-		}
-
-		if (!is_null($filesystem) && !$filesystem instanceof FilesystemInterface) {
-			throw new InvalidArgumentException("First argument must be either a filesystem or a path.");
-		}
-
-		$this->fromFilesystem = $filesystem;
-		$this->fromPath = Util::normalizePath($path);
-
-		return $this;
-	}
-
-	public function to($filesystem, $path = '')
-	{
-		if (is_string($filesystem)) {
-			return $this->to(null, $filesystem);
-		}
-
-		if (!is_null($filesystem) && !$filesystem instanceof FilesystemInterface) {
-			throw new InvalidArgumentException("First argument must be either a filesystem or a path.");
-		}
-
-		$this->toFilesystem = $filesystem;
-		$this->toPath = Util::normalizePath($path);
-		
-		return $this;
-	}
-
-	public function filter($patterns, $inverse = false)
-	{
-		if (!is_string($patterns) && !is_array($patterns)) {
-			throw new InvalidArgumentException("Arguments `$patterns` must be a string or an array.");
-		}
-
-		$this->filterPatterns = $patterns;
-		$this->filterInverse = !!$inverse;
-		
-		return $this;
-	}
-
-	public function recursive($recursive = true)
-	{
-		$this->recursive = !!$recursive;
-		
-		return $this;
-	}
-
-	public function overwrite($files = true, $emptyDirectories = true, $nonEmptyDirectories = true, $replaceDirectories = false)
-	{
-		if (func_num_args() <= 1) {
-			return $this->overwrite($files, $files, $files, false);
-		}
-
-		$this->overwriteFiles = !!$files;
-		$this->overwriteEmptyDirectories = !!$emptyDirectories;
-		$this->overwriteNonEmptyDirectories = !!$nonEmptyDirectories;
-		$this->replaceDirectories = !!$replaceDirectories;
-		
-		return $this;
-	}
-
-	public function onProgress(callable $onProgress = null)
-	{
-		$this->onProgress = $onProgress;
-		
-		return $this;
-	}
-
-	public function onBeforeListing(callable $onBeforeListing = null)
-	{
-		$this->onBeforeListing = $onBeforeListing;
-		
-		return $this;
-	}
-
-	public function onAfterListing(callable $onAfterListing = null)
-	{
-		$this->onAfterListing = $onAfterListing;
-		
-		return $this;
-	}
-
-	public function onBeforeTransfer(callable $onBeforeTransfer = null)
-	{
-		$this->onBeforeTransfer = $onBeforeTransfer;
-		
-		return $this;
-	}
-
-	public function onAfterTransfer(callable $onAfterTransfer = null)
-	{
-		$this->onAfterTransfer = $onAfterTransfer;
-		
-		return $this;
+		$this->fromFilesystem = isset($options['fromFilesystem']) ? $options['fromFilesystem'] : null;
+		$this->fromPath = isset($options['fromPath']) ? Util::normalizePath($options['fromPath']) : '';
+		$this->toFilesystem = isset($options['toFilesystem']) ? $options['toFilesystem'] : null;
+		$this->toPath = isset($options['toPath']) ? Util::normalizePath($options['toPath']) : '';
+		$this->filterPatterns = isset($options['filterPatterns']) ? $options['filterPatterns'] : null;
+		$this->filterInverse = isset($options['filterInverse']) ? $options['filterInverse'] : false;
+		$this->recursive = isset($options['recursive']) ? $options['recursive'] : false;
+		$this->overwriteFiles = isset($options['overwriteFiles']) ? $options['overwriteFiles'] : false;
+		$this->overwriteEmptyDirectories = isset($options['overwriteEmptyDirectories']) ? $options['overwriteEmptyDirectories'] : false;
+		$this->overwriteNonEmptyDirectories = isset($options['overwriteNonEmptyDirectories']) ? $options['overwriteNonEmptyDirectories'] : false;
+		$this->replaceDirectories = isset($options['replaceDirectories']) ? $options['replaceDirectories'] : false;
 	}
 
 	protected function getFromFilesystem()
@@ -148,7 +64,7 @@ class Transfer {
 		return $toFilesystem;
 	}
 
-	public function start()
+	public function transfer()
 	{
 		$this->callBeforeListingCallback();
 
