@@ -2,6 +2,7 @@
 
 namespace JustDeploy\Plugins\SSH;
 
+use JustDeploy\Plugins\AbstractPlugin;
 use JustDeploy\Flysystem\ShellPlugin;
 use JustDeploy\Flysystem\FilterContentsPlugin;
 use JustDeploy\Flysystem\NewTransferPlugin;
@@ -9,7 +10,7 @@ use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
 use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
 
-class Plugin {
+class Plugin extends AbstractPlugin {
 
 	public function make($options)
 	{

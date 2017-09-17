@@ -2,10 +2,11 @@
 
 namespace JustDeploy\Plugins\FTP;
 
+use JustDeploy\Plugins\AbstractPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Ftp as FtpAdapter;
 
-class Plugin {
+class Plugin extends AbstractPlugin {
 
 	public function make($options)
 	{

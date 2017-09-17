@@ -3,13 +3,14 @@
 namespace JustDeploy\Plugins\Local;
 
 use Exception;
+use JustDeploy\Plugins\AbstractPlugin;
 use JustDeploy\Flysystem\ShellPlugin;
 use JustDeploy\Flysystem\FilterContentsPlugin;
 use JustDeploy\Flysystem\NewTransferPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Local as LocalAdapter;
 
-class Plugin {
+class Plugin extends AbstractPlugin {
 
 	public function make($options)
 	{

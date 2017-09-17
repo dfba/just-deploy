@@ -44,7 +44,7 @@ class Deployment {
 		foreach ($plugins as $name => $className) {
 
 			if (!array_key_exists($className, $cache)) {
-				$cache[$className] = new $className();
+				$cache[$className] = new $className($this);
 			}
 
 			$this->{$name} = $cache[$className];

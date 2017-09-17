@@ -2,7 +2,9 @@
 
 namespace JustDeploy\Plugins\Git;
 
-class Plugin {
+use JustDeploy\Plugins\AbstractPlugin;
+
+class Plugin extends AbstractPlugin {
 
 	public function make($options)
 	{
