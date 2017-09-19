@@ -6,7 +6,7 @@ use InvalidArgumentException;
 use JustDeploy\FilesystemInterface;
 use League\Flysystem\Util;
 
-class AtomicDeployment {
+class AtomicSymlinkDeployment {
 
 	protected $filesystem;
 	protected $shell;
