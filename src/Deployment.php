@@ -19,53 +19,60 @@ class Deployment {
 		'ssh' => SSHPlugin::class,
 		'sftp' => SSHPlugin::class, // Alias
 		'git' => GitPlugin::class,
-		'atomic' => AtomicPlugin::class,
+		'atomicSymlinkDeployment' => AtomicPlugin::class,
 		'transfer' => TransferPlugin::class,
 	];
 
 	public $plugins = [];
 
-	public function __construct()
-	{
-		$this->constructPlugins(
-			$this->getPlugins()
-		);
+	protected $attributes = [];
 
-		$this->initializePlugins(
-			$this->getPluginInitializers()
-		);
-	}
-
-	private function getPlugins()
+	protected function getPlugins()
 	{
 		return array_merge($this->defaultPlugins, $this->plugins);
 	}
 
-	private function constructPlugins(array $plugins)
+	public function getAttribute($attribute, $default = null)
 	{
-		$cache = [];
+		if (array_key_exists($attribute, $this->attributes)) {
 
-		foreach ($plugins as $name => $className) {
-
-			if (!array_key_exists($className, $cache)) {
-				$cache[$className] = new $className($this);
-			}
-
-			$this->{$name} = $cache[$className];
+			return $this->attributes[$attribute];
 		}
+
+		if (method_exists($this, $attribute)) {
+
+			return $this->attributes[$attribute] = call_user_func([$this, $attribute]);
+		}
+
+		$plugins = $this->getPlugins();
+		if (array_key_exists($attribute, $plugins)) {
+
+			$pluginClassName = $plugins[$attribute];
+			$plugin = new $pluginClassName($this);
+
+			$this->setAttribute($attribute, $plugin);
+
+			return $plugin;
+		}
+
+		return $default;
 	}
 
-	private function initializePlugins(array $initializers)
+	public function setAttribute($attribute, $value)
 	{
-		foreach ($initializers as $initializer) {
+		$this->attributes[$attribute] = $value;
 
-			$name = $initializer['name'];
-			$plugin = $this->{$initializer['plugin']};
-			
-			$options = call_user_func([$this, $initializer['initializer']]);
-			$this->{$name} = $plugin->make($options);
+		return $value;
+	}
 
-		}
+	public function __get($attribute)
+	{
+		return $this->getAttribute($attribute);
+	}
+
+	public function __set($attribute, $value)
+	{
+		return $this->setAttribute($attribute, $value);
 	}
 
 	public function runTask($task, $arguments = [])
@@ -92,7 +99,7 @@ class Deployment {
 		return $tasks;
 	}
 
-	private function getCallableMethods()
+	protected function getCallableMethods()
 	{
 		$methods = [];
 
@@ -110,37 +117,6 @@ class Deployment {
 		}
 
 		return $methods;
-	}
-
-	private function getPluginInitializers()
-	{
-		$initializers = [];
-
-		$plugins = $this->getPlugins();
-		$methods = $this->getCallableMethods();
-
-		foreach ($methods as $method) {
-
-			$methodName = $method->getName();
-
-			preg_match('/[A-Z]/', $methodName, $matches, PREG_OFFSET_CAPTURE);
-
-			if (isset($matches[0][1])) {
-				$plugin = substr($methodName, 0, $matches[0][1]);
-				$name = lcfirst(substr($methodName, $matches[0][1]));
-
-				if (array_key_exists($plugin, $plugins)) {
-
-					$initializers[] = [
-						'initializer' => $methodName,
-						'plugin' => $plugin,
-						'name' => $name,
-					];
-				}
-			}
-		}
-
-		return $initializers;
 	}
 
 }
