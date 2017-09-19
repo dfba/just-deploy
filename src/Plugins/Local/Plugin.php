@@ -2,53 +2,42 @@
 
 namespace JustDeploy\Plugins\Local;
 
-use Exception;
 use JustDeploy\Plugins\AbstractPlugin;
-use JustDeploy\Flysystem\ShellPlugin;
 use JustDeploy\Flysystem\FilterContentsPlugin;
-use JustDeploy\Flysystem\NewTransferPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Local as LocalAdapter;
 
 class Plugin extends AbstractPlugin {
 
-	public function make($options)
+	public function getDefaultOptions()
 	{
-		$filesystem = $this->createFilesystem($options);
-		$filesystem->addPlugin(new FilterContentsPlugin());
-		$filesystem->addPlugin(new NewTransferPlugin());
-		$filesystem->addPlugin(new ShellPlugin(
-			$this->createShell($options)
-		));
-
-		return $filesystem;
+		return [
+			'path' => '/',
+			'writeFlags' => LOCK_EX,
+			'linkHandling' => LocalAdapter::DISALLOW_LINKS,
+			'permissions' => [],
+		];
 	}
 
-	protected function createShell($options)
+	protected function memoizeShell()
 	{
 		return new Shell([
-			'cwd' => @$options['path'],
+			'cwd' => $this->path,
 		]);
 	}
 
-	protected function createFilesystem($options)
+	protected function memoizeFilesystem()
 	{
-		$root = $options['path'];
-
-		if (!strlen($root)) {
-			throw new Exception("Root path is a required option.");
-		}
-
-		$writeFlags = isset($options['writeFlags']) ? $options['writeFlags'] : LOCK_EX;
-		$linkHandling = isset($options['linkHandling']) ? $options['linkHandling'] : LocalAdapter::DISALLOW_LINKS;
-		$permissions = isset($options['permissions']) ? $options['permissions'] : [];
-
-		return new Flysystem(new LocalAdapter(
-			$root,
-			$writeFlags,
-			$linkHandling,
-			$permissions
+		$filesystem = new Flysystem(new LocalAdapter(
+			$this->path,
+			$this->writeFlags,
+			$this->linkHandling,
+			$this->permissions
 		));
+
+		$filesystem->addPlugin(new FilterContentsPlugin());
+
+		return $filesystem;
 	}
 
 }

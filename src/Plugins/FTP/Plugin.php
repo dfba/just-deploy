@@ -8,21 +8,22 @@ use League\Flysystem\Adapter\Ftp as FtpAdapter;
 
 class Plugin extends AbstractPlugin {
 
-	public function make($options)
+	public function getDefaultOptions()
 	{
-		return (object) [
-			'filesystem' => $this->createFilesystem($options),
+		return [
+			'port' => 21,
+			'path' => '/',
 		];
 	}
 
-	protected function createFilesystem($options)
+	protected function memoizeFilesystem()
 	{
 		return new Flysystem(new FtpAdapter([
-			'host' => @$options['host'],
-			'port' => @$options['port'],
-			'username' => @$options['username'],
-			'password' => @$options['password'],
-			'root' => @$options['path'],
+			'host' => $this->host,
+			'port' => $this->port,
+			'username' => $this->username,
+			'password' => $this->password,
+			'root' => $this->path,
 		]));
 	}
 
