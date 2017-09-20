@@ -4,52 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "5baa20ed423a64f96b473e544f59ea12",
+    "content-hash": "b31622771bc6f9ecbad1d92f12362345",
     "packages": [
-        {
-            "name": "falc/flysystem-sftp-symlink-plugin",
-            "version": "v1.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Falc/FlysystemSftpSymlinkPlugin.git",
-                "reference": "14ed34903a358f2abbe7f9a2f801a813de7f844b"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Falc/FlysystemSftpSymlinkPlugin/zipball/14ed34903a358f2abbe7f9a2f801a813de7f844b",
-                "reference": "14ed34903a358f2abbe7f9a2f801a813de7f844b",
-                "shasum": ""
-            },
-            "require": {
-                "league/flysystem": "~1.0",
-                "league/flysystem-sftp": "~1.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Falc\\Flysystem\\Plugin\\Symlink\\Sftp\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Aitor García",
-                    "email": "aitor.falc@gmail.com",
-                    "homepage": "http://aitorgarcia.org/"
-                }
-            ],
-            "description": "Sftp symlink plugin for Flysystem.",
-            "keywords": [
-                "Flysystem",
-                "plugin",
-                "sftp",
-                "symlink"
-            ],
-            "time": "2015-12-13T11:42:17+00:00"
-        },
         {
             "name": "league/flysystem",
             "version": "1.0.41",

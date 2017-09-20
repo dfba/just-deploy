@@ -2,13 +2,17 @@
 
 namespace JustDeploy\Plugins\SSH;
 
+use League\Flysystem\Util;
+use JustDeploy\ShellException;
+use JustDeploy\ShellInterface;
 use JustDeploy\Plugins\AbstractPlugin;
 use JustDeploy\Flysystem\FilterContentsPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
-use Falc\Flysystem\Plugin\Symlink\Sftp as SftpSymlinkPlugin;
 
-class Plugin extends AbstractPlugin {
+class Plugin extends AbstractPlugin implements ShellInterface {
+
+	protected $connection = null;
 
 	public function getDefaultOptions()
 	{
@@ -18,33 +22,116 @@ class Plugin extends AbstractPlugin {
 		];
 	}
 
-	protected function memoizeShell()
+	public function getShell()
 	{
-		return new Shell([
-			'host' => $this->host,
-			'port' => $this->port,
-			'username' => $this->username,
-			'password' => $this->password,
-			'cwd' => $this->path,
-		]);
+		return $this;
+	}
+	
+
+	public function getFilesystem()
+	{
+		return $this->flysystem;
 	}
 
-	protected function memoizeFilesystem()
+	protected function memoizeSftpAdapter()
 	{
-		$filesystem = new Flysystem(new SftpAdapter([
+		return new SftpAdapter([
 			'host' => $this->host,
 			'port' => $this->port,
 			'username' => $this->username,
 			'password' => $this->password,
 			'root' => $this->path,
-		]));
+		]);
+	}
 
-		$filesystem->addPlugin(new SftpSymlinkPlugin\Symlink());
-		$filesystem->addPlugin(new SftpSymlinkPlugin\DeleteSymlink());
-		$filesystem->addPlugin(new SftpSymlinkPlugin\IsSymlink());
-		$filesystem->addPlugin(new FilterContentsPlugin());
+	protected function memoizeFlysystem()
+	{
+		$flysystem = new Flysystem($this->sftpAdapter);
 
-		return $filesystem;
+		$flysystem->addPlugin(new FilterContentsPlugin());
+
+		return $flysystem;
+	}
+
+	public function resolvePath($path)
+	{
+		$path = Util::normalizePath($this->path .'/'. $path);
+		$path = '/'. rtrim($path, '/');
+
+		if (strlen($path)) {
+			return $path;
+
+		} else {
+			return '/';
+		}
+	}
+
+	public function escape($argument)
+	{
+		return "'". str_replace("'", "\\'", $argument) ."'";
+	}
+
+	protected function buildArguments(array $arguments)
+	{
+		$suffix = '';
+
+		foreach ($arguments as $key => $value) {
+
+			$value = trim($value);
+
+			if (is_numeric($key)) {
+				if (strlen($value)) {
+					$suffix .= ' '. trim($value);
+				}
+			} else {
+
+				$key = trim($key);
+
+				if (strlen($key) || strlen($value)) {
+					$suffix .= ' '. $key .'='. trim($value);
+				}
+			}
+		}
+
+		return $suffix;
+	}
+
+	public function exec($command, array $arguments=[], $cwd='/')
+	{
+		$ssh = $this->sftpAdapter->getConnection();
+
+		$wasQuietModeEnabled = $ssh->isQuietModeEnabled();
+		if (!$wasQuietModeEnabled) {
+			$ssh->enableQuietMode();
+		}
+
+		try {
+			$cwdArgument = $this->escape($this->resolvePath($cwd));
+			$argumentsSuffix = $this->buildArguments($arguments);
+
+			$stdout = $ssh->exec("cd $cwdArgument\n$command$argumentsSuffix");
+			$stderr = $ssh->getStdError();
+			$exitStatus = $ssh->getExitStatus();
+
+			if ($exitStatus) {
+				throw new ShellException("SSH Command `$command` exited with status code: $exitStatus. Message: \"". trim($stderr) ."\"", $exitStatus);
+			}
+
+			return [
+				'stdout' => $stdout,
+				'stderr' => $stderr,
+			];
+
+		} finally {
+			if (!$wasQuietModeEnabled) {
+				$ssh->disableQuietMode();
+			}
+		}
+	}
+
+	public function __call($method, $arguments)
+	{
+		return call_user_func_array([$this->filesystem, $method], $arguments);
 	}
 
 }
