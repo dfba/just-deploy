@@ -8,6 +8,6 @@ interface ShellInterface {
 
 	public function escape($argument);
 
-	public function exec($command);
+	public function exec($command, array $arguments=[], $cwd='/');
 
 }
