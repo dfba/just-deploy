@@ -26,9 +26,12 @@ abstract class AbstractPlugin {
 
 	public function setup(array $options = [])
 	{
+		list($ignore, $caller) = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+        $guessedLabel = $caller['function'];
+
 		return new static(
 			$this->deployment,
-			array_merge($this->options, $options)
+			array_merge(['label' => $guessedLabel], $this->options, $options)
 		);
 	}
 
