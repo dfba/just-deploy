@@ -34,7 +34,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 		return $this->flysystem;
 	}
 
-	protected function memoizeFlysystem()
+	protected function memoizeFlysystemAttribute()
 	{
 		$flysystem = new Flysystem(new LocalAdapter(
 			$this->path,
@@ -128,7 +128,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 
 	public function __call($method, $arguments)
 	{
-		return call_user_func_array([$this->filesystem, $method], $arguments);
+		return call_user_func_array([$this->getFilesystem(), $method], $arguments);
 	}
 
 }

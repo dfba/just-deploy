@@ -45,20 +45,20 @@ abstract class AbstractPlugin {
 		if (array_key_exists($name, $this->options)) {
 			return $this->options[$name];
 		} else {
-			return $value;
+			return $default;
 		}
 	}
 
 	public function getAttribute($attribute, $default = null)
 	{
-		$getterName = 'get'. $attribute;
+		$getterName = 'get'. $attribute .'Attribute';
 
 		if (method_exists($this, $getterName)) {
 			return call_user_func([$this, $getterName]);
 		}
 
 
-		$memoizedGetterName = 'memoize'. $attribute;
+		$memoizedGetterName = 'memoize'. $attribute .'Attribute';
 
 		if (method_exists($this, $memoizedGetterName)) {
 
@@ -74,7 +74,7 @@ abstract class AbstractPlugin {
 
 	public function setAttribute($attribute, $value)
 	{
-		$setterName = 'set'. $attribute;
+		$setterName = 'set'. $attribute .'Attribute';
 
 		if (method_exists($this, $setterName)) {
 			return call_user_func([$this, $setterName], $value);

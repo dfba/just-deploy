@@ -35,7 +35,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 		return $this->flysystem;
 	}
 
-	protected function memoizeSftpAdapter()
+	protected function memoizeSftpAdapterAttribute()
 	{
 		return new SftpAdapter([
 			'host' => $this->host,
@@ -46,7 +46,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 		]);
 	}
 
-	protected function memoizeFlysystem()
+	protected function memoizeFlysystemAttribute()
 	{
 		$flysystem = new Flysystem($this->sftpAdapter);
 
@@ -133,7 +133,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 
 	public function __call($method, $arguments)
 	{
-		return call_user_func_array([$this->filesystem, $method], $arguments);
+		return call_user_func_array([$this->getFilesystem(), $method], $arguments);
 	}
 
 }
