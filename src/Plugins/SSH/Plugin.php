@@ -3,6 +3,8 @@
 namespace JustDeploy\Plugins\SSH;
 
 use League\Flysystem\Util;
+use JustDeploy\HasFilesystemInterface;
+use JustDeploy\HasShellInterface;
 use JustDeploy\ShellException;
 use JustDeploy\ShellInterface;
 use JustDeploy\Plugins\AbstractPlugin;
@@ -10,7 +12,7 @@ use JustDeploy\Flysystem\FilterContentsPlugin;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Sftp\SftpAdapter;
 
-class Plugin extends AbstractPlugin implements ShellInterface {
+class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface, HasFilesystemInterface {
 
 	protected $connection = null;
 

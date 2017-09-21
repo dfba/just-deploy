@@ -2,6 +2,8 @@
 
 namespace JustDeploy\Plugins\Local;
 
+use JustDeploy\HasFilesystemInterface;
+use JustDeploy\HasShellInterface;
 use JustDeploy\ShellException;
 use JustDeploy\ShellInterface;
 use JustDeploy\Plugins\AbstractPlugin;
@@ -10,7 +12,7 @@ use League\Flysystem\Util;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Adapter\Local as LocalAdapter;
 
-class Plugin extends AbstractPlugin implements ShellInterface {
+class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface, HasFilesystemInterface {
 
 	public function getDefaultOptions()
 	{
