@@ -1,69 +1,54 @@
 <?php
 
-namespace JustDeploy\Plugins\Atomic;
+namespace JustDeploy\Plugins\AtomicSymlinkDeployment;
 
 use InvalidArgumentException;
 use JustDeploy\Plugins\AbstractPlugin;
+use JustDeploy\HasFilesystemInterface;
 use JustDeploy\FilesystemInterface;
+use JustDeploy\HasShellInterface;
+use JustDeploy\ShellInterface;
 use League\Flysystem\Util;
 
-class AtomicSymlinkDeployment extends AbstractPlugin {
+class Plugin extends AbstractPlugin {
 
-	protected $filesystem;
-	protected $shell;
-
-	protected $currentLink;
-	protected $directory;
-	protected $successFile;
-
-	protected $keepFailed;
-	protected $keepSuccessful;
-
-	protected $generateName;
-	protected $compareName;
-
-	protected $logProgress;
-
-	public function __construct($options)
+	public function getDefaultOptions()
 	{
-		$this->filesystem = $options['filesystem'];
-		$this->shell = @$options['shell'] ?: $this->filesystem->getShell();
+		return [
+			'currentLink' => 'current',
+			'directory' => 'deployments',
+			'successFile' => '.deployment-successful',
+			'keepSuccessful' => true,
+			'keepFailed' => true,
+			'logProgress' => false,
+			'generateName' => [$this, 'generateNameDefault'],
+			'compareName' => [$this, 'compareNameDefault'],
+		];
+	}
 
-		$this->currentLink = Util::normalizePath(@$options['currentLink'] ?: 'current');
-		$this->directory = Util::normalizePath(@$options['directory'] ?: 'deployments');
-		$this->successFile = Util::normalizePath(@$options['successFile'] ?: '.deployment-successful');
+	protected function getFilesystem()
+	{
+		if ($this->destination instanceof FilesystemInterface) {
+			return $this->destination;
 
-		$this->keepSuccessful = isset($options['keepSuccessful']) ? $options['keepSuccessful'] : true;
-		$this->keepFailed = isset($options['keepFailed']) ? $options['keepFailed'] : true;
-		
-		$this->generateName = @$options['generateName'] ?: [$this, 'generateNameDefault'];
-		$this->compareName = @$options['compareName'] ?: [$this, 'compareNameDefault'];
+		} else if ($this->destination instanceof HasFilesystemInterface) {
+			return $this->destination->getFilesystem();
 
-		$this->logProgress = isset($options['logProgress']) ? $options['logProgress'] : false;
-
-
-		if (!$this->filesystem instanceof FilesystemInterface) {
-			throw new InvalidArgumentException("Option 'filesystem' is not a valid filesystem.");
+		} else {
+			throw new InvalidArgumentException("Option 'destination' is not a valid filesystem.");
 		}
+	}
 
-		if (strpos($this->currentLink, '/') !== false) {
-			throw new InvalidArgumentException("Option 'currentLink' may not contain slashes.");
-		}
+	protected function getShell()
+	{
+		if ($this->destination instanceof ShellInterface) {
+			return $this->destination;
 
-		if (strpos($this->directory, '/') !== false) {
-			throw new InvalidArgumentException("Option 'directory' may not contain slashes.");
-		}
+		} else if ($this->destination instanceof HasShellInterface) {
+			return $this->destination->getShell();
 
-		if (strpos($this->successFile, '/') !== false) {
-			throw new InvalidArgumentException("Option 'successFile' may not contain slashes.");
-		}
-
-		if (!is_callable($this->generateName)) {
-			throw new InvalidArgumentException("Option 'generateName' must be a callable.");
-		}
-
-		if (!is_callable($this->compareName)) {
-			throw new InvalidArgumentException("Option 'compareName' must be a callable.");
+		} else {
+			throw new InvalidArgumentException("Option 'destination' is not a valid shell.");
 		}
 	}
 
@@ -88,16 +73,21 @@ class AtomicSymlinkDeployment extends AbstractPlugin {
 	{
 		$deploymentName = call_user_func($this->generateName);
 		$deploymentPath = Util::normalizePath($this->directory .'/'. $deploymentName);
+		$filesystem = $this->getFilesystem();
+
+		if (strpos($this->successFile, '/') !== false) {
+			throw new InvalidArgumentException("Option 'successFile' may not contain slashes.");
+		}
 
 		$this->log("Starting atomic deployment: $deploymentName");
 
-		$this->filesystem->createDir($deploymentPath);
+		$filesystem->createDir($deploymentPath);
 
 		call_user_func($prepare, $deploymentPath);
 
 		$this->log("Publishing deployment...");
 
-		$this->filesystem->write($deploymentPath .'/'. $this->successFile, '');
+		$filesystem->write($deploymentPath .'/'. $this->successFile, '');
 		$this->atomicSymlink($this->currentLink, $deploymentPath);
 
 		$this->log("Deployment published!");
@@ -112,17 +102,20 @@ class AtomicSymlinkDeployment extends AbstractPlugin {
 
 	public function atomicSymlink($from, $to)
 	{
-		$fromArgument = $this->shell->escape($this->shell->resolvePath($from));
-		$toArgument = $this->shell->escape($this->shell->resolvePath($to));
+		$shell = $this->getShell();
 
-		$this->shell->exec("ln -snf $toArgument $fromArgument");
+		$fromArgument = $shell->escape($shell->resolvePath($from));
+		$toArgument = $shell->escape($shell->resolvePath($to));
+
+		$shell->exec("ln -snf $toArgument $fromArgument");
 	}
 
 	protected function cleanup($current)
 	{
 		$this->log("Locating old deployments...");
 
-		$files = $this->filesystem->listContents($this->directory);
+		$filesystem = $this->getFilesystem();
+		$files = $filesystem->listContents($this->directory);
 
 		$successfulDeployments = [];
 		$failedDeployments = [];
@@ -133,7 +126,7 @@ class AtomicSymlinkDeployment extends AbstractPlugin {
 				continue;
 			}
 
-			$successful = $this->filesystem->has($file['path'] .'/'. $this->successFile);
+			$successful = $filesystem->has($file['path'] .'/'. $this->successFile);
 
 			if ($successful) {
 				$successfulDeployments[] = $file;
@@ -190,9 +183,11 @@ class AtomicSymlinkDeployment extends AbstractPlugin {
 
 	protected function removeDirectory($path)
 	{
-		$pathArgument = $this->shell->escape($this->shell->resolvePath($path));
-		// Using `rm -r` is *much* faster than its equivalent: `$this->filesystem->deleteDir($file['path']);`
-		$this->shell->exec("rm -r $pathArgument");
+		$shell = $this->getShell();
+
+		$pathArgument = $shell->escape($shell->resolvePath($path));
+		// Using `rm -r` is *much* faster than its equivalent: `$this->getFilesystem()->deleteDir($file['path']);`
+		$shell->exec("rm -r $pathArgument");
 	}
 
 }
