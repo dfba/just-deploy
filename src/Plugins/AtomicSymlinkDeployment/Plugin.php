@@ -112,6 +112,12 @@ class Plugin extends AbstractPlugin {
 
 	protected function cleanup($current)
 	{
+		if ($this->keepFailed === true && $this->keepSuccessful === true) {
+
+			$this->log("Skipping cleanup of old deployments.");
+			return;
+		}
+
 		$this->log("Locating old deployments...");
 
 		$filesystem = $this->getFilesystem();
@@ -146,11 +152,11 @@ class Plugin extends AbstractPlugin {
 
 		if ($this->keepFailed !== true) {
 
-			$keepFailed = (int) $this->keepFailed;
+			$keepFailed = min((int) $this->keepFailed, count($failedDeployments));
+			$removeFailed = max(count($failedDeployments) - $keepFailed, 0);
 
 			$this->log(
-				"Keeping $keepFailed recently failed deployment(s) and removing ". 
-				(count($failedDeployments) - $keepFailed) ."."
+				"Keeping $keepFailed recently failed deployment(s) and removing $removeFailed."
 			);
 
 			$this->removeDeployments(
@@ -160,11 +166,11 @@ class Plugin extends AbstractPlugin {
 
 		if ($this->keepSuccessful !== true) {
 
-			$keepSuccessful = (int) $this->keepSuccessful;
+			$keepSuccessful = min((int) $this->keepSuccessful, count($successfulDeployments));
+			$removeSuccessful = max(count($successfulDeployments) - $keepSuccessful, 0);
 
 			$this->log(
-				"Keeping $keepSuccessful recently succeeded deployment(s) and removing ". 
-				(count($successfulDeployments) - $keepSuccessful) ."."
+				"Keeping $keepSuccessful recently succeeded deployment(s) and removing $removeSuccessful."
 			);
 
 			$this->removeDeployments(
