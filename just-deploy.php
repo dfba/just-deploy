@@ -7,7 +7,7 @@ class Deployment extends JustDeploy\Deployment {
 		return $this->local->setup([
 			/**
 			 * Path to the local project files. If the path does not start with a slash, 
-			 * it will be relative to the containing directory of this `just-deploy.php` file.
+			 * it will be relative to the containing directory of this file.
 			 */
 			'path' => './',
 		]);
@@ -16,14 +16,30 @@ class Deployment extends JustDeploy\Deployment {
 	public function remote()
 	{
 		return $this->ssh->setup([
+			/**
+			 * IP address or domain name of the SSH server.
+			 */
+			'host' => '',
 
-		]);
-	}
+			/**
+			 * SSH port number. (22 is the default port)
+			 */
+			'port' => 22,
 
-	public function ftpRemote()
-	{
-		return $this->ftp->setup([
+			/**
+			 * Username.
+			 */
+			'username' => '',
 
+			/**
+			 * Password.
+			 */
+			'password' => '',
+
+			/**
+			 * Absolute path to remote directory. For example: /home/user/domain.com/
+			 */
+			'path' => '',
 		]);
 	}
 
@@ -118,8 +134,13 @@ class Deployment extends JustDeploy\Deployment {
 	}
 
 
+	/**
+	 * This is the entrypoint of your deployment.
+	 * Do whatever you've got to do here.
+	 */
 	public function taskDefault()
 	{
+		// Perform an atomic deployment:
 		$this->atomicDeployment->deploy(
 			[$this, 'prepareDeployment'],
 			[$this, 'afterDeployment']
@@ -127,6 +148,12 @@ class Deployment extends JustDeploy\Deployment {
 	}
 
 
+	/**
+	 * Called after the deployment folder is created, but before the symlinks are switched.
+	 * Use this function to set up your application.
+	 * 
+	 * @param $path Path to the newly created deployment folder.
+	 */
 	public function prepareDeployment($path)
 	{
 		// Copy all the files to the deployment folder:
@@ -142,11 +169,19 @@ class Deployment extends JustDeploy\Deployment {
 		$this->runComposerInstall($path);
 	}
 
+
+	/**
+	 * Called immediately after the symlinks are switched.
+	 * 
+	 * @param $path Path to the now active deployment folder.
+	 */
 	public function afterDeployment($path)
 	{
 		// Redirect Apache to the new deployment's public_html folder:
 		$this->atomicDeployment->atomicSymlink('public_html', $path .'/public_html');
 	}
+
+
 
 	public function makeSharedDirectory($deploymentPath, $sharedPath)
 	{
@@ -162,6 +197,8 @@ class Deployment extends JustDeploy\Deployment {
 			$stateContainer .'/'. $sharedPath
 		);
 	}
+
+
 
 	public function runComposerInstall($path)
 	{
