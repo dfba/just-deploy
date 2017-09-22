@@ -2,12 +2,6 @@
 
 class Deployment extends JustDeploy\Deployment {
 
-	public $shared = [
-		'/storage',
-		'/.env',
-		'/public_html/uploads',
-	];
-
 	public function project()
 	{
 		return $this->local->setup([
@@ -52,6 +46,23 @@ class Deployment extends JustDeploy\Deployment {
 			'overwriteFiles' => false,
 			'overwriteEmptyDirectories' => true,
 			'overwriteNonEmptyDirectories' => false,
+			'logProgress' => true,
+		]);
+	}
+
+	public function sharedTransfer()
+	{
+		return $this->transfer->setup([
+			'source' => $this->project,
+			'destination' => $this->remote,
+			'filterPatterns' => [
+				'/\.git',
+			],
+			'filterInverse' => true,
+			'recursive' => true,
+			'overwriteFiles' => true,
+			'overwriteEmptyDirectories' => true,
+			'overwriteNonEmptyDirectories' => true,
 			'logProgress' => true,
 		]);
 	}
@@ -123,6 +134,10 @@ class Deployment extends JustDeploy\Deployment {
 			'destinationPath' => $path,
 		])->transfer();
 
+		// Set up the folders that are shared between deployments:
+		$this->makeSharedDirectory($path, '/storage');
+		$this->makeSharedDirectory($path, '/public_html/uploads');
+
 		// Run `composer install`:
 		$this->runComposerInstall($path);
 	}
@@ -133,6 +148,20 @@ class Deployment extends JustDeploy\Deployment {
 		$this->atomicDeployment->atomicSymlink('public_html', $path .'/public_html');
 	}
 
+	public function makeSharedDirectory($deploymentPath, $sharedPath)
+	{
+		$stateContainer = 'shared';
+
+		$this->sharedTransfer->setup([
+			'sourcePath' => $sharedPath,
+			'destinationPath' => $stateContainer .'/'. $sharedPath,
+		])->transfer();
+
+		$this->atomicDeployment->atomicSymlink(
+			$deploymentPath .'/'. $sharedPath,
+			$stateContainer .'/'. $sharedPath
+		);
+	}
 
 	public function runComposerInstall($path)
 	{
