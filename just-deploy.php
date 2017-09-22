@@ -106,117 +106,50 @@ class Deployment extends JustDeploy\Deployment {
 		]);
 	}
 
-	
-
-	public function projectRepository()
-	{
-		return $this->git->setup([
-			'shell' => $this->source->getShell(),
-		]);
-	}
 
 	public function taskDefault()
 	{
-		$this->atomicDeployment->deploy(function($path) {
-
-			$this->projectTransfer->setup([
-				'destinationPath' => $path,
-			])->transfer();
-
-		});
-
-		// $this->taskVerifyCleanGit();
-
-		// $branch = 'tags/production';
-
-		// echo "Switching to branch '$branch' ...\n";
-		// $previousBranch = $this->taskGitCheckout($branch);
-		
-		// try {
-
-			// $this->symlinkDeployment->deploy(
-			// 	// Tasks to run after the deployment folder has been created, but before it has been published:
-			// 	function($deploymentPath) {
-
-			// 		$this->projectTransfer->setup([
-			// 			'toPath' => $deploymentPath,
-			// 		])->transfer();
-
-			// 		// $this->taskUpload($deploymentPath);
-			// 		// $this->taskComposerInstall($deploymentPath);
-
-			// 	},
-
-			// 	// Tasks to run after the deployment has been published, but before cleanup is run:
-			// 	function($deploymentPath) {
-
-			// 		// $this->symlinkDeployment->atomicSymlink('/public_html', $deploymentPath . '/public_html');
-
-			// 	}
-			// );
-
-		// } finally {
-
-		// 	echo "Switching back to previous branch '$previousBranch' ...\n";
-		// 	$this->taskGitCheckout($previousBranch);
-
-		// }
+		$this->atomicDeployment->deploy(
+			[$this, 'prepareDeployment'],
+			[$this, 'afterDeployment']
+		);
 	}
 
-	protected function getCurrentGitRef()
+
+	public function prepareDeployment($path)
 	{
-		$branch = $this->sourceGit->getCurrentBranch();
+		// Copy all the files to the deployment folder:
+		$this->projectTransfer->setup([
+			'destinationPath' => $path,
+		])->transfer();
 
-		if (!is_null($branch)) {
-			return $branch;
-		}
-
-		// Repository is probably in detached head state.
-		$commit = $this->sourceGit->getCurrentCommit();
-
-		if (!is_null($commit)) {
-			return $commit;
-		}
-
-		throw new Exception("Could not determine current branch/tag/commit.");
+		// Run `composer install`:
+		$this->runComposerInstall($path);
 	}
 
-	public function taskGitCheckout($branch)
+	public function afterDeployment($path)
 	{
-		$previousRef = $this->getCurrentGitRef();
-
-		$this->sourceGit->checkout($branch);
-
-		return $previousRef;
+		// Redirect Apache to the new deployment's public_html folder:
+		$this->atomicDeployment->atomicSymlink('public_html', $path .'/public_html');
 	}
 
-	public function taskVerifyCleanGit()
+
+	public function runComposerInstall($path)
 	{
-		$status = $this->sourceGit->status();
-		
-		if (strlen($status)) {
-			echo "Local git repository is not clean. The following files have changed:\n";
-			echo $status;
-			echo "\n\nABORTING NOW!\n";
-			
-			throw new Exception("Uncommitted changes present.");
-		}
-	}
-
-	public function taskComposerInstall($deploymentPath)
-	{
-		$shell = $this->remote->getShell();
-
-		$cwd = $shell->getcwd();
-		$shell->chdir($cwd .'/'. $deploymentPath);
-
 		echo "Running composer install...\n";
 
-		try {
-			$result = $shell->exec("php composer.phar install --optimize-autoloader --no-interaction --no-ansi --no-progress --no-suggest");
-		} finally {
-			$shell->chdir($cwd);
-		}
+		$result = $this->remote->exec(
+			'php composer.phar',
+			[
+				'install',
+				'--optimize-autoloader',
+				'--no-interaction',
+				'--no-ansi',
+				'--no-progress',
+				'--no-suggest',
+			],
+			$path
+		);
 
 		echo "\n";
 		echo $result['stdout'];
