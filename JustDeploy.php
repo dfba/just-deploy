@@ -237,7 +237,9 @@ class JustDeploy extends JustDeploy\Deployment {
 	}
 
 
-
+	/**
+	 * Run `composer install`
+	 */
 	public function runComposerInstall($path)
 	{
 		echo "Running composer install...\n";
