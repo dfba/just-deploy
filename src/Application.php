@@ -9,37 +9,105 @@ class Application {
 	
 	public function execute(array $cmdArguments, array $env)
 	{
-		$environment = $this->parseEnvironmentVariables($env);
+		$environmentVariables = $this->parseEnvironmentVariables($env);
 		$arguments = $this->parseArguments($cmdArguments);
-		$task = $arguments['task'] ?: 'default';
-		$taskName = lcfirst($this->camelCase($task));
 
-		$defaultDeployFile = getcwd() .'/just-deploy.php';
-		$suppliedDeployFile = @$arguments['arguments']['--deploy-file'];
-		$deployFile = realpath($suppliedDeployFile ?: $defaultDeployFile);
+		$deployClassName = 'JustDeploy'. $this->camelCase(@$arguments[0] ?: '');
+		$defaultDeployDirectory = getcwd();
+		$suppliedDeployDirectory = @$arguments['--deploy-directory'];
+		$deployDirectory = $suppliedDeployDirectory ?: $defaultDeployDirectory;
 
-		if (!file_exists($deployFile)) {
-			throw new Exception("Deploy file does not exist: $deployFile");
+		if (!file_exists($deployDirectory)) {
+			throw new Exception("Deploy directory does not exist: $deployDirectory");
 		}
 
-		// Relative paths used in the deploy file should be relative to the deploy file's parent directory:
-		chdir(dirname($deployFile));
-		require_sandboxed($deployFile);
+		$deployFiles = $this->findDeployFiles($deployDirectory);
 
-		if (!class_exists('Deployment')) {
-			throw new Exception("Deploy file does not define a class called 'Deployment'.");
+		if (!array_key_exists($deployClassName, $deployFiles)) {
+			throw new Exception("No deploy file found called '$deployClassName.php'.");
 		}
 
-		$deployment = new \Deployment();
+		$this->registerAutoloader($deployDirectory, $deployFiles);
 
-		$tasks = $deployment->getTasks();
-
-		if (!in_array($taskName, $tasks)) {
-			throw new Exception("Deploy file does not define a task called '$taskName'.");
+		if (!class_exists($deployClassName)) {
+			throw new Exception("Deploy file does not define a class called '$deployClassName'.");
 		}
 
-		$deployment->runTask($taskName);
+		$task = lcfirst($this->camelCase(@$arguments['--task'] ?: 'default'));
+
+		$this->runDeployment($deployDirectory, $deployClassName, $task);
 		
+	}
+
+	protected function runDeployment($deployDirectory, $deployClassName, $task)
+	{
+		$this->runInCwd($deployDirectory, function() use ($deployClassName, $task) {
+			
+			$instantiateClassName = '\\'. $deployClassName;
+
+			$deployment = new $instantiateClassName();
+
+			if (!$deployment instanceof Deployment) {
+				throw new Exception("Deploy class '$deployClassName' must extend `JustDeploy\Deployment`.");
+			}
+
+			$tasks = $deployment->getTasks();
+
+			if (!in_array($task, $tasks)) {
+				throw new Exception("Deploy file does not define a task called '$task'.");
+			}
+
+			$deployment->runTask($task);
+		});
+	}
+
+	protected function registerAutoloader($deployDirectory, array $deployFiles)
+	{
+		spl_autoload_register(function($className) use($deployDirectory, $deployFiles) {
+
+			if (array_key_exists($className, $deployFiles)) {
+
+				$classFile = $deployFiles[$className];
+
+				$this->runInCwd($deployDirectory, function() use ($classFile) {
+					require_sandboxed($classFile);
+				});
+
+				return true;
+			}
+
+		}, true, true);
+	}
+
+	protected function findDeployFiles($directory)
+	{
+		$deployFiles = [];
+
+		foreach (scandir($directory) as $file) {
+			$lowercaseFile = mb_convert_case($file, MB_CASE_LOWER);
+
+			if (substr($lowercaseFile, 0, 10) === 'justdeploy' &&
+				substr($lowercaseFile, -4) === '.php') {
+
+				$className = substr($file, 0, -4);
+
+				$deployFiles[$className] = realpath($directory .DIRECTORY_SEPARATOR. $file);
+			}
+		}
+
+		return $deployFiles;
+	}
+
+	protected function runInCwd($cwd, callable $callback)
+	{
+		$previousCwd = getcwd();
+		chdir($cwd);
+
+		try {
+			return call_user_func($callback);
+		} finally {
+			chdir($previousCwd);
+		}
 	}
 
 	protected function camelCase($string)
@@ -66,10 +134,7 @@ class Application {
 
 	protected function parseArguments(array $cmdArguments)
 	{
-		$arguments = [
-			'task' => null,
-			'arguments' => [],
-		];
+		$arguments = [];
 
 		foreach ($cmdArguments as $index => $argument) {
 			
@@ -90,15 +155,11 @@ class Application {
 					$value = mb_substr($argument, $nameEnd+1);
 				}
 
-				$arguments['arguments'][$name] = $value;
-
-			} else if ($index === 0) { // Is task name?
-
-				$arguments['task'] = $argument;
+				$arguments[$name] = $value;
 
 			} else { // Must be an ordinary anonymous argument
 
-				$arguments['arguments'][] = $argument;
+				$arguments[] = $argument;
 			}
 		}
 

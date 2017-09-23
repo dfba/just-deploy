@@ -1,6 +1,6 @@
 <?php
 
-class Deployment extends JustDeploy\Deployment {
+class JustDeploy extends JustDeploy\Deployment {
 
 	public function project()
 	{
@@ -19,7 +19,7 @@ class Deployment extends JustDeploy\Deployment {
 			/**
 			 * IP address or domain name of the SSH server.
 			 */
-			'host' => '',
+			'host' => '<Enter host here>',
 
 			/**
 			 * SSH port number. (22 is the default port)
@@ -29,17 +29,17 @@ class Deployment extends JustDeploy\Deployment {
 			/**
 			 * Username.
 			 */
-			'username' => '',
+			'username' => '<Enter username here>',
 
 			/**
 			 * Password.
 			 */
-			'password' => '',
+			'password' => '<Enter password here>',
 
 			/**
 			 * Absolute path to remote directory. For example: /home/user/domain.com/
 			 */
-			'path' => '',
+			'path' => '<Enter path here>',
 		]);
 	}
 
