@@ -46,22 +46,58 @@ class JustDeploy extends JustDeploy\Deployment {
 	public function projectTransfer()
 	{
 		return $this->transfer->setup([
+			/**
+			 * Which files should be transferred?
+			 */
 			'source' => $this->project,
+
+			/**
+			 * To where should the files be transferred?
+			 */
 			'destination' => $this->remote,
-			'filterPatterns' => [
-				'/node_modules/',
-				'/\.git',
-				'^/public_html/source/',
-				'^/public_html/uploads/',
-				'^/vendor/',
-				'^/storage/',
-				'^/\.env',
-			],
+
+			/**
+			 * Filter the files to be transferred.
+			 *
+			 * If 'filterInverse' is false, *only* the files matching 'filterPatterns' will be transferred.
+			 * If 'filterInverse' is true, the files matching 'filterPatterns' will *not* be transferred.
+			 *
+			 * 'filterPatterns' is an array of regular expressions (PCRE). Forward slashes are automatically escaped.
+			 * Paths always start with a slash. Directory paths always end with a slash.
+			 */
 			'filterInverse' => true,
+			'filterPatterns' => [
+				'^/public_html/uploads/', // Shared folder.
+				'^/storage/', // Shared folder.
+				'^/vendor/', // Composer's vendor folder will get recreated using `composer install`.
+				'^/\.env', // Don't upload any .env file. Only the correct one will get uploaded later.
+				'/node_modules/', // Node.js dependencies.
+				'/\.git', // Repository data.
+			],
+
+			/**
+			 * Transfer subdirectories and their contents?
+			 */
 			'recursive' => true,
+
+			/**
+			 * Overwrite any existing files at the destination?
+			 */
 			'overwriteFiles' => false,
+
+			/**
+			 * Continue transferring if the destination folder exists but is empty?
+			 */
 			'overwriteEmptyDirectories' => true,
+
+			/**
+			 * Continue transferring if the destination folder exists and is not empty?
+			 */
 			'overwriteNonEmptyDirectories' => false,
+
+			/**
+			 * Print progress information to the console?
+			 */
 			'logProgress' => true,
 		]);
 	}
@@ -162,6 +198,7 @@ class JustDeploy extends JustDeploy\Deployment {
 		])->transfer();
 
 		// Set up the folders that are shared between deployments:
+		// If you add a folder here, you should probably also add it to the ignore list of `projectTransfer`.
 		$this->makeSharedDirectory($path, '/storage');
 		$this->makeSharedDirectory($path, '/public_html/uploads');
 
