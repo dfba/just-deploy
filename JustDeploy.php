@@ -147,8 +147,9 @@ class JustDeploy extends JustDeploy\Deployment {
 			/**
 			 * Everytime a deployment is performed, a fresh copy of your code is set up.
 			 * Those copies (a.k.a. deployments) are not removed, unless you tell it to do so.
+			 * 
 			 * 'keepSuccessful' specifies how many old successful deployments should be preserved after each deployment.
-			 * This can be a number, 
+			 * This can be a number (keep n deployments),
 			 * or `false` (remove all old successful deployments),
 			 * or `true` (don't remove any deployments).
 			 *
