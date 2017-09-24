@@ -12,6 +12,17 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 });
 
+set_exception_handler(function($error) {
+	echo "\n";
+	echo "### Error #####################################################################\n";
+	echo "#\n";
+	echo "# ". $error->getMessage() ."\n";
+	echo "#\n";
+	echo "###############################################################################\n\n\n";
+	echo "#- ". $error->getFile() ."(". $error->getLine() .")\n";
+	echo $error->getTraceAsString() ."\n";
+});
+
 function require_if_exists($file)
 {
 	if (file_exists($file)) {
