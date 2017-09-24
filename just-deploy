@@ -12,7 +12,19 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 
 });
 
-require __DIR__ . '/vendor/autoload.php';
+function require_if_exists($file)
+{
+	if (file_exists($file)) {
+		return require $file;
+	}
+}
+
+if (!(
+	($composer = require_if_exists(__DIR__ . '/vendor/autoload.php')) ||
+	($composer = require_if_exists(__DIR__ . '/../../../vendor/autoload.php'))
+)) {
+	echo "Could not find Composer installation. Please run `composer install` first.";
+}
 
 
 
