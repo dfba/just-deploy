@@ -1,4 +1,6 @@
 {
+	"name": "dfba/just-deploy",
+	"description": "Deploy projects without any extra setup.",
 	"autoload": {
 		"psr-4": {
 			"JustDeploy\\": "src/"
