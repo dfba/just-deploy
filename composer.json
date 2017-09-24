@@ -1,6 +1,7 @@
 {
 	"name": "dfba/just-deploy",
 	"description": "Deploy projects without any extra setup.",
+	"license": "MIT",
 	"autoload": {
 		"psr-4": {
 			"JustDeploy\\": "src/"
