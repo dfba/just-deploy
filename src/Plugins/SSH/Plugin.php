@@ -21,6 +21,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 		return [
 			'port' => 22,
 			'path' => '/',
+			'directoryPermissions' => 0755,
 		];
 	}
 
@@ -43,6 +44,7 @@ class Plugin extends AbstractPlugin implements ShellInterface, HasShellInterface
 			'username' => $this->username,
 			'password' => $this->password,
 			'root' => $this->path,
+			'directoryPerm' => $this->directoryPermissions,
 		]);
 	}
 
