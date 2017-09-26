@@ -2,6 +2,7 @@
 
 namespace JustDeploy\Plugins\AtomicSymlinkDeployment;
 
+use Exception;
 use InvalidArgumentException;
 use JustDeploy\Plugins\AbstractPlugin;
 use JustDeploy\HasFilesystemInterface;
@@ -104,10 +105,25 @@ class Plugin extends AbstractPlugin {
 	{
 		$shell = $this->getShell();
 
-		$fromArgument = $shell->escape($shell->resolvePath($from));
-		$toArgument = $shell->escape($shell->resolvePath($to));
+		$from = $shell->resolvePath($from);
+		$temporarySymlink = $from .'_'. uniqid('', true);
+		$to = $shell->resolvePath($to);
 
-		$shell->exec("ln -snf $toArgument $fromArgument");
+		$fromArgument = $shell->escape($from);
+		$fromTempArgument = $shell->escape($temporarySymlink);
+		$toArgument = $shell->escape($to);
+
+		$result = $shell->exec("ln -snf $toArgument $fromTempArgument");
+
+		if ($result['stderr']) {
+			throw new Exception("Could not create symlink: ${$result['stderr']}");
+		}
+
+		$result = $shell->exec("mv -Tf $fromTempArgument $fromArgument");
+
+		if ($result['stderr']) {
+			throw new Exception("Could not atomically rename symlink: ${$result['stderr']}");
+		}
 	}
 
 	protected function cleanup($current)
